@@ -10,7 +10,7 @@
 
 # Estimating Time Saved by a 5% better Student Model.
 
-&emsp; Knowledge tracers are typically fit to student data in the form of seqeuences of binary values indicating whether or not a student performed correctly at a particular practice opportunity. These datasets are typically fit using statistical models like Baysian Knowledge Tracing (a kind of hidden Markov Model), mixed effect logistic regression models like the Additive Factors Model (AFM), or with deep-learning (i.e. DKT). These models predict the probability that a student will get their next problem attempt correct. In this calculation we'll assume to know the ground-truth probabilities---an assumption which allows us to analytically calculate the expected Mean Square Error between a candidate model and the ground-truth one.
+&emsp; Knowledge tracers are typically fit to student data in the form of seqeuences of binary values indicating whether or not a student performed correctly at a particular practice opportunity. These datasets are typically fit using statistical models like Baysian Knowledge Tracing (a kind of hidden Markov Model)[2], mixed effect logistic regression models like the Additive Factors Model (AFM) [1], or with deep-learning (i.e. DKT)[4]. These models predict the probability that a student will get their next problem attempt correct. In this calculation we'll assume to know the ground-truth probabilities---an assumption which allows us to analytically calculate the expected Mean Square Error between a candidate model and the ground-truth one.
 
 ## Calculating Expected RMSE 
 
@@ -51,17 +51,42 @@ E_rmse = lambda p,_p : np.sqrt(E_mse(p,_p))
 
 ## The Calculating Expect Time Saved
 
-### Find the old 5% worse threshold intercept 
+### Calculate the old 5% worse threshold intercept 
+
+To find the threshold intercept of the 5% worse model we can solve for $\hat{p}$ in our equation above. Set the left-hand side to 5% worse than the RMSE of the ground truth model (i.e. $\frac{RMSE^{*}}{.95}$) then complete the square to solve for $\hat{p}$.
+
+$\frac{RMSE^{*}}{.95} = \sqrt{\hat{p}^2 - 2\hat{p}p + p}$
+
+$(\frac{RMSE^{*}}{.95})^2 = \hat{p}^2 - 2\hat{p}p + p^2 - p^2 + p$  (Complete the square)
+
+$(\frac{RMSE^{*}}{.95})^2 = (\hat{p}-p)^2 - p^2 + p $ (Factor the square)
+
+$(\hat{p}-p)^2 = (\frac{RMSE^{*}}{.95})^2 + p^2 - p$
+
+$\hat{p} = p \pm \sqrt{(\frac{RMSE^{*}}{.95})^2 + p(p-1)}$ 
+
+
 
 
 ```python
-# A mastery threshold intercept of 95%
-thresh = .95
-old_p_at_thresh = .8785 #Here we're assuming an underestimate of mastery
+err = 0.05 # How much worse the old model is
+thresh = .95 # A mastery threshold intercept of 95%
 
-# Ensure this choice the old threshold intercept has 5% worse RMSE than the new generating model.
+# Considering the choice of +/- above, we'll pick the negative (-) choice. This assumes an underestimate.
+# In fact there isn't a %5 worse over-estimate for this choice of threshold since to achieve the same 
+# 5% worse RMSE with an over-estimate we would need a model prediction probability of > 1.0.
+p_for_worse = lambda p : p - np.sqrt((E_rmse(p,p)/(1-err))**2 + p*(p-1))
+
+old_p_at_thresh = p_for_worse(thresh) 
+print(f"Probability at threshold intercept of old {100*err}% worse model: \n{100*old_p_at_thresh:.2f}%")
+
+# Sanity Check: the choice the old threshold intercept has 5% worse RMSE than the new generating model.
 assert np.abs(E_rmse(thresh, old_p_at_thresh)*.95-E_rmse(thresh,thresh))  < 1e-4
 ```
+
+    Probability at threshold intercept of old 5.0% worse model: 
+    87.84%
+
 
 ### Set Ground-Truth Parameters
 
@@ -103,7 +128,7 @@ print(f"intercept old/new: {old_intr:.3f}  {new_intr:.3f}")
 print(f"slope old/new: \t    {old_slope:.3f}   {new_slope:.3f}")
 ```
 
-    intercept old/new: -0.785  -0.619
+    intercept old/new: -0.786  -0.619
     slope old/new: 	    0.230   0.297
 
 
@@ -121,15 +146,15 @@ total_time = n_kcs*attempt_length*avg_probs
 print(f"Total Time Saved: {total_time_saved/60:.2f} minutes or {total_time_saved/3600:.2f} hours. ({100*total_time_saved/total_time:.2f})% of {total_time/3600} total hours")
 ```
 
-    avg_extra_probs_old_model: 4.19
-    Total Time Saved: 524.36 minutes or 8.74 hours. (34.96)% of 25.0 total hours
+    avg_extra_probs_old_model: 4.20
+    Total Time Saved: 525.22 minutes or 8.75 hours. (35.01)% of 25.0 total hours
 
 
 &emsp; In total a the 5% better model gives us a rather large expected time saving of 35%. 
 
 ## What about whole model RMSE?
 
-&emsp; We can do a similar calculation for the RMSE of the whole model (not just at the threshold point). However, the RMSE outside of the neighborhood of the mastery threshold has no bearing on the problem selection behavior of a knowledge-tracer. Nonetheless in this case if we tweak the parameters so that the RMSE difference of the whole model is 5% then, we get a similar RMSE difference in the neighborhood of the mastery threshold. It's hard to say if this is true in general or  a quirk of comparing two versions of the same model: one with ground-truth parameters and one with perturbed parameters. The more typical comparison would be to compare two models with different choices of independant variables, like Performance Factors Analysis (PFA) versus Additive Factors Model (AFM), or a different model variety entirely like Baysian Knowledge Tracing (BKT) or Deep Knowledge Tracing (DKT).  The reality is that we really ought to be in the habit of reporting model performance statistics around reasonable threshold choices (i.e. 85%, 90%, 95%).
+&emsp; We can do a similar calculation for the RMSE of the whole model (not just at the threshold point). However, the RMSE outside of the neighborhood of the mastery threshold has no bearing on the problem selection behavior of a knowledge-tracer. Nonetheless in this case if we tweak the parameters so that the RMSE difference of the whole model is 5% then, we get a similar RMSE difference in the neighborhood of the mastery threshold. It's hard to say if this is true in general or  a quirk of comparing two versions of the same model: one with ground-truth parameters and one with perturbed parameters. The more typical comparison would be to compare two models with different choices of independant variables, like Performance Factors Analysis (PFA)[3] versus Additive Factors Model (AFM)[1], or a different model variety entirely like Baysian Knowledge Tracing (BKT)[2] or Deep Knowledge Tracing (DKT)[4].  The reality is that we really ought to be in the habit of reporting model performance statistics around reasonable threshold choices (i.e. 85%, 90%, 95%).
 
 
 ```python
@@ -142,7 +167,7 @@ def E_model_rmse(intr, slope, opp_cutoff=15):
         mse_s.append(np.mean([E_mse(p_ground_truth(i), p_model(i)) ]))
     return np.mean(mse_s)
 
-old_p_at_thresh = .8797
+old_p_at_thresh = .8797 # No simple analytical solution in this case, just guess and check with assertion.
 old_intr, old_slope = gen_old_model_params(old_p_at_thresh)
 
 assert np.abs(E_model_rmse(old_intr, old_slope)*.95-E_model_rmse(new_intr,new_slope)) < 1e-4
@@ -168,6 +193,8 @@ print(f"Total Time Saved: {total_time_saved/60:.2f} minutes or {total_time_saved
     Total Time Saved: 516.68 minutes or 8.61 hours. (34.45)% of 25.0 total hours
 
 
+### An additional Sanity Check on our Math / Code
+
 
 ```python
 from numpy.random import random as rand
@@ -179,6 +206,31 @@ print(f'{E_rmse(thresh, .8785):.5f}')
     
 ```
 
-    0.22959
+    0.22950
     0.22937
+
+
+## What about models like Performance Factors Analysis (PFA) or Baysian Knowledge Tracing (BKT) that have multiple features (instead of just number of opportunities)?
+
+Our initial set of calculations were model agnostic up-to a point. We did not need to make any assumptions about the nature of the model to determine the mastery probability predicted by a 5% worse than ground-truth model that is underestimating at the ground-truth theshold point. Nonetheless, we did need to make model assumptions to interpolate beyond that point to determine how many extra problems that model would give each student. By choosing a model where number of opportunities was the only feature [1] we simplified this interplolation. In this section we discuss how in principle this approach can be extended to other kinds of model.
+
+Performance Factors Analysis (PFA) [3] is another kind of logistic regression model, which counts number of correct and incorrect responses for opportunities independantly instead of combining them into a total opportunity count. In principle, our approach still works in this case. Although, yet more assumptions must be made to continue purely analytically. We need to, for instance, make a choice of the relative contributions of positive and negative responses. For any choice of parameters there are multiple consistent positive and negative counts that produce a particular correctness probability. Nonetheless, we can interpolate from any of them abitrarily without loss of generality since the model is linear. To perfom this interpolation, we can make the simplifying assumption that all of the remaining practice opportunities will be correct, since afterall the interpolation begins from within the neighborhood of the mastery threshold. So we don't expect many incorrect responses.
+
+Baysian Knowledge Tracing (BKT) [2] is yet another kind of knowledge tracing model (in fact it is among the first). Like PFA it utilizes both positive and negative responses. But, BKT is a hidden markov model, so it's mastery prediction is not a linear function of the number of positive and negative responses. If two BKT models updated with same set of correct and incorrect responses, but in different orders, then the models may not make the same predictions. Luckily BKT's predications are characterized by a single latent variable $L_t$, which is the probability that the student has "mastered" a particular skill, concept, or fact at opportunity $t$. To set the point from which we interpolate from we can set $L_t$ such that the probability that the next item is answered correctly $P(C|L_t)$ is equal to the probability associated with the 5% worse than ground truth model at the threshold point, then simply update the model assuming the remaining responses are correct until it exceeds the mastery threshold (the approach take for instance by [5][6]), or alternatively analytically solve for the number of additional problems, which could in principle be done by expressing the BKT update as a markov process with a transition matrix.
+
+
+
+## Works Cited
+
+[1] Cen, H., Koedinger, K., Junker, B.: Learning factors analysis–a general method for cognitive model evaluation and improvement. In: International Conference on Intelligent Tutoring Systems. pp. 164–175. Springer (2006)
+
+[2] Corbett, A.T., Anderson, J.R.: Knowledge tracing: Modeling the acquisition of procedural knowledge. User modeling and user-adapted interaction 4(4), 253–278 (1994)
+
+[3] Pavlik Jr, P. I., Cen, H., & Koedinger, K. R. (2009). Performance Factors Analysis--A New Alternative to Knowledge Tracing. Online Submission.
+
+[4] Piech, C., Bassen, J., Huang, J., Ganguli, S., Sahami, M., Guibas, L. J., & Sohl-Dickstein, J. (2015). Deep knowledge tracing. Advances in neural information processing systems, 28.
+
+[5] Yudelson, M., Ritter, S.: Small improvement for the model accuracy–big difference for the students. In: Industry Track Proceedings of 17th International Conference on Artificial Intelligence in Education (AIED 2015), Madrid, Spain (2015)
+
+[6] Yudelson, M., Koedinger, K.: Estimating the benefits of student model improvements on a substantive scale. In: Educational Data Mining 2013 (2013)
 
