@@ -59,7 +59,7 @@ $\frac{RMSE^{*}}{.95} = \sqrt{\hat{p}^2 - 2\hat{p}p + p}$
 
 $(\frac{RMSE^{*}}{.95})^2 = \hat{p}^2 - 2\hat{p}p + p^2 - p^2 + p$  (Complete the square)
 
-$(\frac{RMSE^{*}}{.95})^2 = (\hat{p}-p)^2 - p^2 + p $ (Factor the square)
+$(\frac{RMSE^{*}}{.95})^2 = (\hat{p}-p)^2 - p^2 + p$ (Factor the square)
 
 $(\hat{p}-p)^2 = (\frac{RMSE^{*}}{.95})^2 + p^2 - p$
 
