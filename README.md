@@ -1,13 +1,3 @@
-```python
-%%html 
-<style type='text/css'>p {font-size: 18px; font-family: "Monaco"}</style>
-```
-
-
-<style type='text/css'>p {font-size: 18px; font-family: "Monaco"}</style>
-
-
-
 &emsp; Knowledge tracers are predictors of individual students' mastery of fine-grained learning objectives called knowledge components. Knowledge tracers make this prediction on the basis of student's prior performance on practice or assessment problems, and serve the purpose determining when students should continue practicing problems of certain types or move on to new content. Knowledge tracers are typically fit to existing student data that has been reduced to seqeuences of binary values indicating whether particular practice opportunities resulted in a correct first attempt response. Knowledge tracers and can come in a variety of types including Baysian Knowledge Tracing (a kind of hidden Markov Model)[2], mixed effect logistic regression models like the Additive Factors Model (AFM) [1], and deep-learning based methods like DKT[4]. Although the original DKT work in fact makes a different sort of prediction---pure item-by-item prediction---which is distinct from the kind of prediction required of a knowledge tracer, which must have a characterization of item to KC mappings so that items associated with particular KCs can be omitted from future practice.
 
 # Estimating Time Saved by a 5% better Student Model.
